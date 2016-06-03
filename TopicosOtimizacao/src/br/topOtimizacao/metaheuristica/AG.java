@@ -10,17 +10,17 @@ import java.util.concurrent.ThreadLocalRandom;
 import br.topOtimizacao.base.Canivete;
 import br.topOtimizacao.base.Individuo;
 
-public class Edb {
+public class AG {
 
-	double PM;
-	double PR;
+	double CR;
+	double MT;
 	ArrayList<Individuo> populacao;
 
-	public Edb(double PM, double PR, ArrayList<Individuo> populacao) {
+	public AG(double CR, double MT, ArrayList<Individuo> populacao) {
 
 		this.populacao = populacao;
-		this.PR = PR;
-		this.PM = PM;
+		this.CR = CR;
+		this.MT = MT;
 
 	}
 
@@ -44,39 +44,12 @@ public class Edb {
 			novaPop = duplicaPop();
 
 			int i;
-			for (i = 0; i < populacao.size(); i++) {
-
-				int jRand = new Random().nextInt(populacao.get(0).mochilas.size());
-				int s = Canivete.randExclude(0, populacao.size(), i);
-
-				Individuo teste = populacao.get(i).getClone();
-
-				int j;
-				for (j = 0; j < teste.objetos.size(); j++) {
-
-					// aplica operador de perturbacao
-					if (new Random().nextDouble() < PR || jRand == j) {
-
-						perturbacao(teste);
-
-					}
-
-					// aplica operador de mutação
-					if (new Random().nextDouble() < PM) {
-
-						inverteBit(teste, j);
-
-					} else {
-						 crossover(teste, i, populacao);
-					}
-
+			for (i = 0; i < populacao.size() / 2; i++) {
+				
+				if (new Random().nextDouble() < CR ) {
+					crossover(populacao,novaPop);
 				}
 
-				if (teste.fitness() > populacao.get(i).fitness()) {
-					
-					novaPop.remove(i);
-					novaPop.add(teste);
-				}
 			}
 
 			max = lucroMaximo(populacao);
@@ -103,21 +76,8 @@ public class Edb {
 		return max;
 	}
 
-	private void perturbacao(Individuo ind) {
-
-		int i;
-
-		i = new Random().nextInt(ind.solucoes.length);
-
-		int aux = ind.solucoes[i];
-		ind.solucoes[i] = 1;
-
-		if (!ind.validaSolucao())
-			ind.solucoes[i] = aux;
-
-	}
-
-	private void inverteBit(Individuo ind, int i) {
+	
+	private void mutacao(Individuo ind, int i) {
 
 		int aux;
 
@@ -133,14 +93,16 @@ public class Edb {
 		}
 	}
 
-	private void crossover(Individuo solAtual, int i, ArrayList<Individuo> populacao) {
+	private void crossover(ArrayList<Individuo> populacao,ArrayList<Individuo> novaPopulacao) {
 
 		int popSize = populacao.size();
-		int ind = Canivete.randExclude(0, popSize, i);
+		int indA = new Random().nextInt(popSize);
+		int indB = Canivete.randExclude(0, popSize, indA);
 
-		Individuo a;
+		Individuo a,b;
 
-		a = populacao.get(ind);
+		a = populacao.get(indA);
+		b = populacao.get(indB);
 
 		Individuo filhoA = new Individuo();
 		Individuo filhoB = new Individuo();
@@ -149,7 +111,7 @@ public class Edb {
 		int corte = Canivete.randExclude(0, a.objetos.size(), 0);
 
 		for (int h = 0; h <= corte; h++) {
-			aux[h] = solAtual.solucoes[h];
+			aux[h] = b.solucoes[h];
 		}
 
 		for (int k = corte; k < a.objetos.size(); k++) {
@@ -170,7 +132,7 @@ public class Edb {
 		}
 
 		for (int k = corte; k < a.solucoes.length; k++) {
-			aux[k] = solAtual.solucoes[k];
+			aux[k] = b.solucoes[k];
 		}
 
 		filhoB.solucoes = aux;
@@ -178,11 +140,19 @@ public class Edb {
 		filhoB.objetos = a.objetos;
 
 		if (!filhoB.validaSolucao())
-			filhoB = solAtual.getClone();
+			filhoB = b.getClone();
 
-		Collections.sort(populacao);
+		Collections.sort(novaPopulacao);
 		populacao.remove(0);
 		populacao.remove(1);
+		
+		if (new Random().nextDouble() < MT ) {
+
+			int gene = new Random().nextInt(filhoA.objetos.size());
+			mutacao(filhoA,gene);
+			mutacao(filhoB,gene);
+		}
+		
 		populacao.add(filhoA);
 		populacao.add(filhoB);
 	}
